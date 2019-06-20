@@ -2,6 +2,7 @@
 extern crate diesel;
 extern crate dotenv;
 
+use std::error::Error;
 use diesel::insert_into;
 use std::env;
 use dotenv::dotenv;
@@ -50,7 +51,7 @@ pub fn user_exists(id: i32, conn: &SqliteConnection) -> bool {
     }
 }
 
-pub fn add_coq_to_user(id: i32, nb_coq: i32, conn: &SqliteConnection) {
+fn set_coq_to_user(id: i32, nb_coq: i32, conn: &SqliteConnection) {
     diesel::update(users::dsl::users.find(id)).set(users::dsl::nb_coq.eq(nb_coq)).execute(conn).expect("Failed to update nb_coq");
 }
 
@@ -61,7 +62,7 @@ pub fn get_coq_of_user(id: i32, conn: &SqliteConnection) -> i32 {
     }
 }
 
-pub fn add_bet(user_id: i32, black: String, white: String, bet: i32, color: String, conn: &SqliteConnection) {
+fn add_bet(user_id: i32, black: String, white: String, bet: i32, color: String, conn: &SqliteConnection) {
     let bet = Bets {
         user_id,
         black,
@@ -70,4 +71,13 @@ pub fn add_bet(user_id: i32, black: String, white: String, bet: i32, color: Stri
         color,
     };
     insert_into(bets::dsl::bets).values(bet).execute(conn).expect("failed to insert bet");
+}
+
+pub fn create_bet(user_id: i32, black: String, white: String, bet: i32, new_coq: i32, color: String, conn: &SqliteConnection) {
+    conn.transaction::<_,diesel::result::Error,_>(|| {
+        set_coq_to_user(user_id, new_coq, conn);
+        add_bet(user_id, black, white, bet, color, conn);
+
+        Ok(())
+    }).expect("Could not create bet");
 }
