@@ -2,7 +2,7 @@ use diesel::Queryable;
 use diesel::Insertable;
 use crate::schema::*;
 
-#[derive(Queryable, Insertable)]
+#[derive(Queryable, Insertable, AsChangeset)]
 #[table_name= "bets"]
 pub struct Bets {
     pub user_id: i32,
@@ -21,7 +21,7 @@ pub struct Game {
     pub white_bet: i32,
 }
 
-#[derive(Queryable,Insertable)]
+#[derive(Debug, PartialEq, Queryable, QueryableByName, Insertable)]
 #[table_name = "users"]
 pub struct Users {
     pub id: i32,
