@@ -101,11 +101,11 @@ pub fn create_bet(user_id: String, black: String, white: String, bet: i32, mut n
             new_coq += bet.bet;
             let mut game = get_game(bet.black.clone(), bet.white.clone(), conn).unwrap();
             match bet.color.as_str() {
-                "black" => {
+                "noir" => {
                     game.black_bet -= bet.bet;
                     update_game_bet(bet.black.clone(), bet.white.clone(), bet.color.clone(), game.black_bet, conn);
                 },
-                "white" => {
+                "blanc" => {
                     game.white_bet -= bet.bet;
                     update_game_bet(bet.black.clone(), bet.white.clone(), bet.color.clone(), game.white_bet, conn);
 
@@ -117,10 +117,10 @@ pub fn create_bet(user_id: String, black: String, white: String, bet: i32, mut n
         set_coq_to_user(user_id.clone(), new_coq, conn);
         let game = get_game(black.clone(), white.clone(), conn).unwrap();
         match color.as_str() {
-            "black" => {
+            "noir" => {
                 update_game_bet(black.clone(), white.clone(), color.clone(), game.black_bet + bet, conn);
             },
-            "white" => {
+            "blanc" => {
                 update_game_bet(black.clone(), white.clone(), color.clone(), game.white_bet + bet, conn);
             },
             _ => (),
@@ -187,13 +187,13 @@ pub fn get_game(black: String, white: String, conn: &SqliteConnection) -> Option
 
 pub fn update_game_bet(black: String, white: String, color: String, new_total: i32, conn: &SqliteConnection) {
     match color.as_str() {
-        "black" => { diesel::update(game::dsl::game).set(game::dsl::black_bet.eq(new_total))
+        "noir" => { diesel::update(game::dsl::game).set(game::dsl::black_bet.eq(new_total))
                         .filter(game::dsl::black.eq(black))
                         .filter(game::dsl::white.eq(white))
                         .execute(conn)
                         .expect("Could not update game");
                     },
-        "white" => { diesel::update(game::dsl::game).set(game::dsl::white_bet.eq(new_total))
+        "blanc" => { diesel::update(game::dsl::game).set(game::dsl::white_bet.eq(new_total))
                         .filter(game::dsl::black.eq(black))
                         .filter(game::dsl::white.eq(white))
                         .execute(conn)
@@ -221,7 +221,7 @@ fn test_get_users_bet_color() {
     reset_database(&conn);
 
     create_user(0, "Romain Fecher".to_string(), &conn);
-    add_bet(0, "gne".to_string(), "gne".to_string(), 42, "white".to_string(), &conn);
+    add_bet(0, "gne".to_string(), "gne".to_string(), 42, "blanc".to_string(), &conn);
 
     let expected_users = vec![Users {
         id: 0,
@@ -229,6 +229,6 @@ fn test_get_users_bet_color() {
         nb_coq: 1000,
     }];
 
-    assert_eq!(get_users_bet_color("gne".to_string(), "gne".to_string(), "white".to_string(), &conn).unwrap(), expected_users);
+    assert_eq!(get_users_bet_color("gne".to_string(), "gne".to_string(), "blanc".to_string(), &conn).unwrap(), expected_users);
     reset_database(&conn);
 }
