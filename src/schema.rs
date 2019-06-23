@@ -1,6 +1,6 @@
 table! {
     bets (user_id, black, white) {
-        user_id -> Integer,
+        user_id -> Text,
         black -> Text,
         white -> Text,
         bet -> Integer,
@@ -19,7 +19,7 @@ table! {
 
 table! {
     users (id) {
-        id -> Integer,
+        id -> Text,
         name -> Text,
         nb_coq -> Integer,
     }

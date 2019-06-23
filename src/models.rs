@@ -5,7 +5,7 @@ use crate::schema::*;
 #[derive(Queryable, Insertable, AsChangeset)]
 #[table_name= "bets"]
 pub struct Bets {
-    pub user_id: i32,
+    pub user_id: String,
     pub black: String,
     pub white: String,
     pub bet: i32,
@@ -24,7 +24,7 @@ pub struct Game {
 #[derive(Debug, PartialEq, Queryable, QueryableByName, Insertable)]
 #[table_name = "users"]
 pub struct Users {
-    pub id: i32,
+    pub id: String,
     pub name: String,
     pub nb_coq: i32,
 }

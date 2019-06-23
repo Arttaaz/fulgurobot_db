@@ -1,5 +1,5 @@
 CREATE TABLE users(
-  id      INT NOT NULL PRIMARY KEY,
+  id      TEXT NOT NULL PRIMARY KEY,
   name    TEXT NOT NULL,
   nb_coq  INT NOT NULL
 );
@@ -14,7 +14,7 @@ CREATE TABLE game (
 );
 
 CREATE TABLE bets (
-  user_id INT NOT NULL,
+  user_id TEXT NOT NULL,
   black TEXT NOT NULL,
   white TEXT NOT NULL,
   bet   INT NOT NULL,

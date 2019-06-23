@@ -34,7 +34,7 @@ pub fn connect_db() -> SqliteConnection {
 // USER
 //////////////////////////////
 
-pub fn create_user(id: i32, name: String, conn: &SqliteConnection) {
+pub fn create_user(id: String, name: String, conn: &SqliteConnection) {
     let user = Users {
         id,
         name,
@@ -43,7 +43,7 @@ pub fn create_user(id: i32, name: String, conn: &SqliteConnection) {
     insert_into(users::dsl::users).values(user).execute(conn).expect("Failed to add user");
 }
 
-pub fn user_exists(id: i32, conn: &SqliteConnection) -> bool {
+pub fn user_exists(id: String, conn: &SqliteConnection) -> bool {
 
     let result = users::dsl::users.filter(users::dsl::id.eq(id)).first::<Users>(conn);
 
@@ -64,11 +64,11 @@ pub fn get_users_bet_color(black: String, white: String, color: String, conn: &S
     }
 }
 
-fn set_coq_to_user(id: i32, nb_coq: i32, conn: &SqliteConnection) {
+fn set_coq_to_user(id: String, nb_coq: i32, conn: &SqliteConnection) {
     diesel::update(users::dsl::users.find(id)).set(users::dsl::nb_coq.eq(nb_coq)).execute(conn).expect("Failed to update nb_coq");
 }
 
-pub fn get_coq_of_user(id: i32, conn: &SqliteConnection) -> i32 {
+pub fn get_coq_of_user(id: String, conn: &SqliteConnection) -> i32 {
     match users::dsl::users.select(users::dsl::nb_coq).filter(users::dsl::id.eq(id)).first::<i32>(conn) {
         Ok(nb_coq) => nb_coq,
         Err(_) => -1,
@@ -79,7 +79,7 @@ pub fn get_coq_of_user(id: i32, conn: &SqliteConnection) -> i32 {
 // BETS
 ///////////////////////////////////
 
-fn add_bet(user_id: i32, black: String, white: String, bet: i32, color: String, conn: &SqliteConnection) {
+fn add_bet(user_id: String, black: String, white: String, bet: i32, color: String, conn: &SqliteConnection) {
     let bet = Bets {
         user_id,
         black,
@@ -90,9 +90,9 @@ fn add_bet(user_id: i32, black: String, white: String, bet: i32, color: String, 
     insert_into(bets::dsl::bets).values(bet).execute(conn).expect("failed to insert bet");
 }
 
-pub fn create_bet(user_id: i32, black: String, white: String, bet: i32, mut new_coq: i32, color: String, conn: &SqliteConnection) {
+pub fn create_bet(user_id: String, black: String, white: String, bet: i32, mut new_coq: i32, color: String, conn: &SqliteConnection) {
     conn.transaction::<_,diesel::result::Error,_>(|| {
-        if let Some(bet) = get_bet(user_id, black.clone(), white.clone(), conn) {
+        if let Some(bet) = get_bet(user_id.clone(), black.clone(), white.clone(), conn) {
             new_coq += bet.bet;
             let mut game = get_game(bet.black.clone(), bet.white.clone(), conn).unwrap();
             match bet.color.as_str() {
@@ -109,7 +109,7 @@ pub fn create_bet(user_id: i32, black: String, white: String, bet: i32, mut new_
             }
             remove_bet(bet, conn);
         }
-        set_coq_to_user(user_id, new_coq, conn);
+        set_coq_to_user(user_id.clone(), new_coq, conn);
         let game = get_game(black.clone(), white.clone(), conn).unwrap();
         match color.as_str() {
             "black" => {
@@ -126,7 +126,7 @@ pub fn create_bet(user_id: i32, black: String, white: String, bet: i32, mut new_
     }).expect("Could not create bet");
 }
 
-pub fn get_bet(user_id: i32, black: String, white: String, conn: &SqliteConnection) -> Option<Bets>{
+pub fn get_bet(user_id: String, black: String, white: String, conn: &SqliteConnection) -> Option<Bets>{
     match bets::dsl::bets
         .filter(bets::dsl::user_id.eq(user_id))
         .filter(bets::dsl::black.eq(black))
@@ -140,7 +140,7 @@ pub fn get_bet(user_id: i32, black: String, white: String, conn: &SqliteConnecti
 
 /// bet must have same primary key as previous bet (user_id, black and white attributes)
 pub fn update_bet(bet: Bets, conn: &SqliteConnection) {
-    diesel::update(bets::dsl::bets.find((bet.user_id, bet.black.clone(), bet.white.clone())))
+    diesel::update(bets::dsl::bets.find((bet.user_id.clone(), bet.black.clone(), bet.white.clone())))
         .set(bet)
         .execute(conn)
         .expect("Could not update bet");
