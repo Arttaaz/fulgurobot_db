@@ -64,6 +64,11 @@ pub fn get_users_bet_color(black: String, white: String, color: String, conn: &S
     }
 }
 
+pub fn add_coq_to_user(id: String, nb_coq: i32, conn: &SqliteConnection) {
+    let coq = get_coq_of_user(id.clone(), conn);
+    set_coq_to_user(id, coq + nb_coq, conn);
+}
+
 fn set_coq_to_user(id: String, nb_coq: i32, conn: &SqliteConnection) {
     diesel::update(users::dsl::users.find(id)).set(users::dsl::nb_coq.eq(nb_coq)).execute(conn).expect("Failed to update nb_coq");
 }
