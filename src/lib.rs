@@ -34,11 +34,11 @@ pub fn connect_db() -> SqliteConnection {
 // USER
 //////////////////////////////
 
-pub fn add_user(id: i32, name: String, conn: &SqliteConnection) {
+pub fn create_user(id: i32, name: String, conn: &SqliteConnection) {
     let user = Users {
         id,
         name,
-        nb_coq: 1000
+        nb_coq: 1000,
     };
     insert_into(users::dsl::users).values(user).execute(conn).expect("Failed to add user");
 }
@@ -100,8 +100,6 @@ pub fn create_bet(user_id: i32, black: String, white: String, bet: i32, new_coq:
 }
 
 pub fn get_bet(user_id: i32, black: String, white: String, conn: &SqliteConnection) -> Option<Bets>{
-    // apparently this is not a tuple so idk. wtf
-    // let fkin_tuple = (bets::dsl::user_id.eq(user_id), bets::dsl::black.eq(black), bets::dsl::white.eq(white));
     match bets::dsl::bets
         .filter(bets::dsl::user_id.eq(user_id))
         .filter(bets::dsl::black.eq(black))
@@ -113,30 +111,30 @@ pub fn get_bet(user_id: i32, black: String, white: String, conn: &SqliteConnecti
     }
 }
 
-#[allow(dead_code)]
-fn get_bets_of_game(black: String, white: String, conn: &SqliteConnection) -> Option<Vec<Bets>> {
-    match bets::dsl::bets
-        .filter(bets::dsl::black.eq(black))
-        .filter(bets::dsl::white.eq(white))
-        .load::<Bets>(conn) {
+// #[allow(dead_code)]
+// fn get_bets_of_game(black: String, white: String, conn: &SqliteConnection) -> Option<Vec<Bets>> {
+//     match bets::dsl::bets
+//         .filter(bets::dsl::black.eq(black))
+//         .filter(bets::dsl::white.eq(white))
+//         .load::<Bets>(conn) {
+//
+//         Ok(bets) => Some(bets),
+//         _ => None,
+//     }
+// }
 
-        Ok(bets) => Some(bets),
-        _ => None,
-    }
-}
-
-#[allow(dead_code)]
-fn get_bets_of_game_color(black: String, white: String, color: String, conn: &SqliteConnection) -> Option<Vec<Bets>> {
-    match bets::dsl::bets
-        .filter(bets::dsl::black.eq(black))
-        .filter(bets::dsl::white.eq(white))
-        .filter(bets::dsl::color.eq(color))
-        .load::<Bets>(conn) {
-
-        Ok(bets) => Some(bets),
-        _ => None,
-    }
-}
+// #[allow(dead_code)]
+// fn get_bets_of_game_color(black: String, white: String, color: String, conn: &SqliteConnection) -> Option<Vec<Bets>> {
+//     match bets::dsl::bets
+//         .filter(bets::dsl::black.eq(black))
+//         .filter(bets::dsl::white.eq(white))
+//         .filter(bets::dsl::color.eq(color))
+//         .load::<Bets>(conn) {
+//
+//         Ok(bets) => Some(bets),
+//         _ => None,
+//     }
+// }
 
 /// bet must have same primary key as previous bet (user_id, black and white attributes)
 pub fn update_bet(bet: Bets, conn: &SqliteConnection) {
@@ -153,6 +151,51 @@ pub fn remove_bets_of_game(black: String, white: String, conn: &SqliteConnection
         .execute(conn).expect(&format!("Could not delete bets of game: {} vs {}", black, white));
 }
 
+///////////////////////////////
+// GAME
+///////////////////////////////
+
+pub fn create_game(black: String, white: String, conn: &SqliteConnection) {
+    let game = Game {
+        black,
+        white,
+        black_bet: 0,
+        white_bet: 0,
+    };
+
+    insert_into(game::dsl::game).values(game).execute(conn).expect("Could not create game");
+}
+
+pub fn get_game(black: String, white: String, conn: &SqliteConnection) -> Option<Game> {
+    match game::dsl::game.filter(game::dsl::black.eq(black)).filter(game::dsl::white.eq(white)).first::<Game>(conn) {
+        Ok(game) => Some(game),
+        _ => None,
+    }
+}
+
+pub fn update_game_bet(black: String, white: String, color: String, new_total: i32, conn: &SqliteConnection) {
+    match color.as_str() {
+        "black" => { diesel::update(game::dsl::game).set(game::dsl::black_bet.eq(new_total))
+                        .filter(game::dsl::black.eq(black))
+                        .filter(game::dsl::white.eq(white))
+                        .execute(conn)
+                        .expect("Could not update game");
+                    },
+        "white" => { diesel::update(game::dsl::game).set(game::dsl::white_bet.eq(new_total))
+                        .filter(game::dsl::black.eq(black))
+                        .filter(game::dsl::white.eq(white))
+                        .execute(conn)
+                        .expect("Could not update game");
+                    },
+        _ => ()
+    }
+}
+
+pub fn delete_game(black: String, white: String, conn: &SqliteConnection) {
+    diesel::delete(game::dsl::game).filter(game::dsl::black.eq(black)).filter(game::dsl::white.eq(white)).execute(conn)
+        .expect("Could not delete game");
+}
+
 #[cfg(test)]
 fn reset_database(conn: &SqliteConnection) {
     diesel::delete(bets::dsl::bets).execute(conn);
@@ -165,7 +208,7 @@ fn test_get_users_bet_color() {
     let conn = connect_db();
     reset_database(&conn);
 
-    add_user(0, "Romain Fecher".to_string(), &conn);
+    create_user(0, "Romain Fecher".to_string(), &conn);
     add_bet(0, "gne".to_string(), "gne".to_string(), 42, "white".to_string(), &conn);
 
     let expected_users = vec![Users {
