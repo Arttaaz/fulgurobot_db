@@ -90,9 +90,36 @@ fn add_bet(user_id: i32, black: String, white: String, bet: i32, color: String, 
     insert_into(bets::dsl::bets).values(bet).execute(conn).expect("failed to insert bet");
 }
 
-pub fn create_bet(user_id: i32, black: String, white: String, bet: i32, new_coq: i32, color: String, conn: &SqliteConnection) {
+pub fn create_bet(user_id: i32, black: String, white: String, bet: i32, mut new_coq: i32, color: String, conn: &SqliteConnection) {
     conn.transaction::<_,diesel::result::Error,_>(|| {
+        if let Some(bet) = get_bet(user_id, black.clone(), white.clone(), conn) {
+            new_coq += bet.bet;
+            let mut game = get_game(bet.black.clone(), bet.white.clone(), conn).unwrap();
+            match bet.color.as_str() {
+                "black" => {
+                    game.black_bet -= bet.bet;
+                    update_game_bet(bet.black.clone(), bet.white.clone(), bet.color.clone(), game.black_bet, conn);
+                },
+                "white" => {
+                    game.white_bet -= bet.bet;
+                    update_game_bet(bet.black.clone(), bet.white.clone(), bet.color.clone(), game.white_bet, conn);
+
+                },
+                _ => (),
+            }
+            remove_bet(bet, conn);
+        }
         set_coq_to_user(user_id, new_coq, conn);
+        let game = get_game(black.clone(), white.clone(), conn).unwrap();
+        match color.as_str() {
+            "black" => {
+                update_game_bet(black.clone(), white.clone(), color.clone(), game.black_bet + bet, conn);
+            },
+            "white" => {
+                update_game_bet(black.clone(), white.clone(), color.clone(), game.white_bet + bet, conn);
+            },
+            _ => (),
+        }
         add_bet(user_id, black, white, bet, color, conn);
 
         Ok(())
@@ -111,31 +138,6 @@ pub fn get_bet(user_id: i32, black: String, white: String, conn: &SqliteConnecti
     }
 }
 
-// #[allow(dead_code)]
-// fn get_bets_of_game(black: String, white: String, conn: &SqliteConnection) -> Option<Vec<Bets>> {
-//     match bets::dsl::bets
-//         .filter(bets::dsl::black.eq(black))
-//         .filter(bets::dsl::white.eq(white))
-//         .load::<Bets>(conn) {
-//
-//         Ok(bets) => Some(bets),
-//         _ => None,
-//     }
-// }
-
-// #[allow(dead_code)]
-// fn get_bets_of_game_color(black: String, white: String, color: String, conn: &SqliteConnection) -> Option<Vec<Bets>> {
-//     match bets::dsl::bets
-//         .filter(bets::dsl::black.eq(black))
-//         .filter(bets::dsl::white.eq(white))
-//         .filter(bets::dsl::color.eq(color))
-//         .load::<Bets>(conn) {
-//
-//         Ok(bets) => Some(bets),
-//         _ => None,
-//     }
-// }
-
 /// bet must have same primary key as previous bet (user_id, black and white attributes)
 pub fn update_bet(bet: Bets, conn: &SqliteConnection) {
     diesel::update(bets::dsl::bets.find((bet.user_id, bet.black.clone(), bet.white.clone())))
@@ -149,6 +151,11 @@ pub fn remove_bets_of_game(black: String, white: String, conn: &SqliteConnection
         .filter(bets::dsl::black.eq(black.clone()))
         .filter(bets::dsl::white.eq(white.clone())))
         .execute(conn).expect(&format!("Could not delete bets of game: {} vs {}", black, white));
+}
+
+fn remove_bet(bet: Bets, conn: &SqliteConnection) {
+    diesel::delete(bets::dsl::bets.find((bet.user_id, bet.black, bet.white))).execute(conn)
+        .expect("Could not remove bet");
 }
 
 ///////////////////////////////
