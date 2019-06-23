@@ -95,26 +95,26 @@ fn add_bet(user_id: String, black: String, white: String, bet: i32, color: Strin
     insert_into(bets::dsl::bets).values(bet).execute(conn).expect("failed to insert bet");
 }
 
-pub fn create_bet(user_id: String, black: String, white: String, bet: i32, mut new_coq: i32, color: String, conn: &SqliteConnection) {
+pub fn create_bet(user_id: String, black: String, white: String, bet: i32, color: String, conn: &SqliteConnection) {
     conn.transaction::<_,diesel::result::Error,_>(|| {
-        if let Some(bet) = get_bet(user_id.clone(), black.clone(), white.clone(), conn) {
-            new_coq += bet.bet;
-            let mut game = get_game(bet.black.clone(), bet.white.clone(), conn).unwrap();
-            match bet.color.as_str() {
+        if let Some(old_bet) = get_bet(user_id.clone(), black.clone(), white.clone(), conn) {
+            add_coq_to_user(user_id.clone(), old_bet.bet, conn);
+            let mut game = get_game(old_bet.black.clone(), old_bet.white.clone(), conn).unwrap();
+            match old_bet.color.as_str() {
                 "noir" => {
-                    game.black_bet -= bet.bet;
-                    update_game_bet(bet.black.clone(), bet.white.clone(), bet.color.clone(), game.black_bet, conn);
+                    game.black_bet -= old_bet.bet;
+                    update_game_bet(old_bet.black.clone(), old_bet.white.clone(), old_bet.color.clone(), game.black_bet, conn);
                 },
                 "blanc" => {
-                    game.white_bet -= bet.bet;
-                    update_game_bet(bet.black.clone(), bet.white.clone(), bet.color.clone(), game.white_bet, conn);
+                    game.white_bet -= old_bet.bet;
+                    update_game_bet(old_bet.black.clone(), old_bet.white.clone(), old_bet.color.clone(), game.white_bet, conn);
 
                 },
                 _ => (),
             }
-            remove_bet(bet, conn);
+            remove_bet(old_bet, conn);
         }
-        set_coq_to_user(user_id.clone(), new_coq, conn);
+        add_coq_to_user(user_id.clone(), -bet, conn);
         let game = get_game(black.clone(), white.clone(), conn).unwrap();
         match color.as_str() {
             "noir" => {
