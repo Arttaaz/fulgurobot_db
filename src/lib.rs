@@ -155,7 +155,7 @@ pub fn remove_bets_of_game(black: String, white: String, conn: &SqliteConnection
     diesel::delete(bets::dsl::bets
         .filter(bets::dsl::black.eq(black.clone()))
         .filter(bets::dsl::white.eq(white.clone())))
-        .execute(conn).expect(&format!("Could not delete bets of game: {} vs {}", black, white));
+        .execute(conn).unwrap_or_else(|_| panic!("Could not delete bets of game: {} vs {}", black, white));
 }
 
 fn remove_bet(bet: Bets, conn: &SqliteConnection) {
