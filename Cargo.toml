@@ -2,7 +2,7 @@
 name = "fulgurobot_db"
 description = "A database module for the fulgurogo discord server bot"
 license = "MPL-2.0"
-version = "0.4.3"
+version = "0.4.4"
 authors = ["Arttaaz <arttaaz@gmail.com>"]
 edition = "2018"
 
