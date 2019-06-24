@@ -185,6 +185,10 @@ pub fn get_game(black: String, white: String, conn: &SqliteConnection) -> Option
     }
 }
 
+pub fn get_games(conn: &SqliteConnection) -> Vec<Game> {
+    game::dsl::game.load::<Game>(conn).unwrap()
+}
+
 pub fn update_game_bet(black: String, white: String, color: String, new_total: i32, conn: &SqliteConnection) {
     match color.as_str() {
         "noir" => { diesel::update(game::dsl::game).set(game::dsl::black_bet.eq(new_total))
